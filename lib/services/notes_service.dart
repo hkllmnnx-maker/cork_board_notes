@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../models/note.dart';
+import 'settings_service.dart';
 
 /// خدمة إدارة الملاحظات باستخدام Hive للتخزين المحلي
 class NotesService extends ChangeNotifier {
@@ -12,38 +13,70 @@ class NotesService extends ChangeNotifier {
 
   List<Note> get notes => _notes;
 
+  /// ترتيب الفرز الحالي (يُضبط من SettingsService عند الحاجة)
+  NoteSortOrder _sortOrder = NoteSortOrder.updatedDesc;
+  NoteSortOrder get sortOrder => _sortOrder;
+
+  void setSortOrder(NoteSortOrder order) {
+    if (_sortOrder == order) return;
+    _sortOrder = order;
+    notifyListeners();
+  }
+
+  /// تطبيق الترتيب الحالي على قائمة
+  void _applySort(List<Note> list) {
+    switch (_sortOrder) {
+      case NoteSortOrder.updatedDesc:
+        list.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+        break;
+      case NoteSortOrder.updatedAsc:
+        list.sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
+        break;
+      case NoteSortOrder.createdDesc:
+        list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        break;
+      case NoteSortOrder.createdAsc:
+        list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        break;
+      case NoteSortOrder.alphabetical:
+        list.sort((a, b) => a.content
+            .trim()
+            .toLowerCase()
+            .compareTo(b.content.trim().toLowerCase()));
+        break;
+    }
+  }
+
   /// الملاحظات حسب الفئة
   List<Note> notesByCategory(int categoryIndex) {
-    return _notes.where((n) => n.categoryIndex == categoryIndex).toList()
-      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    final list =
+        _notes.where((n) => n.categoryIndex == categoryIndex).toList();
+    _applySort(list);
+    return list;
   }
 
   /// البحث في الملاحظات (بنص معيّن، مع إمكانية التقييد بفئة)
   List<Note> searchNotes(String query, {int? categoryIndex}) {
     final q = query.trim().toLowerCase();
-    if (q.isEmpty) {
-      return categoryIndex != null
-          ? notesByCategory(categoryIndex)
-          : List<Note>.from(_notes)
-        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-    }
     Iterable<Note> source = _notes;
     if (categoryIndex != null) {
       source = source.where((n) => n.categoryIndex == categoryIndex);
     }
-    final results = source
-        .where((n) =>
-            n.content.toLowerCase().contains(q) ||
-            n.title.toLowerCase().contains(q))
-        .toList()
-      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    if (q.isNotEmpty) {
+      source = source.where((n) =>
+          n.content.toLowerCase().contains(q) ||
+          n.title.toLowerCase().contains(q));
+    }
+    final results = source.toList();
+    _applySort(results);
     return results;
   }
 
   /// الملاحظات المثبتة على الشاشة الرئيسية
   List<Note> get pinnedNotes {
-    return _notes.where((n) => n.isPinnedToHome).toList()
-      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    final list = _notes.where((n) => n.isPinnedToHome).toList();
+    _applySort(list);
+    return list;
   }
 
   /// الملاحظات ذات التذكيرات القادمة
