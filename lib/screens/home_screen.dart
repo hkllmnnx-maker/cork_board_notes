@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/settings_service.dart';
+import '../utils/haptics.dart';
 import '../widgets/top_tabs.dart';
 import 'board_screen.dart';
 import 'settings_screen.dart';
@@ -22,7 +25,12 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             TopTabs(
               currentIndex: _currentIndex,
-              onTabChanged: (i) => setState(() => _currentIndex = i),
+              onTabChanged: (i) {
+                if (i != _currentIndex) {
+                  Haptics.selection(context.read<SettingsService>());
+                }
+                setState(() => _currentIndex = i);
+              },
             ),
             Expanded(
               child: IndexedStack(

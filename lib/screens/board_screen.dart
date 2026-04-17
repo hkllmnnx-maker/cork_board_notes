@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/note.dart';
 import '../services/notes_service.dart';
+import '../services/settings_service.dart';
 import '../utils/app_colors.dart';
 import '../utils/date_formatter.dart';
+import '../utils/haptics.dart';
 import '../widgets/cork_background.dart';
 import '../widgets/sticky_note_card.dart';
 import 'note_edit_screen.dart';
@@ -323,7 +325,17 @@ class BoardScreen extends StatelessWidget {
       ),
     );
     if (result == true && context.mounted) {
+      final settings = context.read<SettingsService>();
       await context.read<NotesService>().deleteNote(note.id);
+      if (context.mounted) {
+        Haptics.medium(settings);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم حذف الملاحظة'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
     }
   }
 

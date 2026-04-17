@@ -3,8 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/note.dart';
 import '../services/notes_service.dart';
+import '../services/settings_service.dart';
 import '../utils/app_colors.dart';
 import '../utils/date_formatter.dart';
+import '../utils/haptics.dart';
 import '../widgets/cork_background.dart';
 import '../widgets/pushpin.dart';
 import 'calendar_picker_dialog.dart';
@@ -40,12 +42,20 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
 
   Future<void> _save() async {
     final service = context.read<NotesService>();
+    final settings = context.read<SettingsService>();
     final updated = _note.copyWith(content: _controller.text);
     if (widget.isNew) {
+      // لا نحفظ ملاحظة جديدة فارغة تمامًا
+      if (updated.content.trim().isEmpty) {
+        if (!mounted) return;
+        Navigator.of(context).pop(false);
+        return;
+      }
       await service.addNote(updated);
     } else {
       await service.updateNote(updated);
     }
+    Haptics.light(settings);
     if (!mounted) return;
     Navigator.of(context).pop(true);
   }
