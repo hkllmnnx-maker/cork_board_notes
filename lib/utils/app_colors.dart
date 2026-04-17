@@ -84,6 +84,19 @@ class AppColors {
     }
   }
 
+  /// أسماء الدبابيس (الأولويات)
+  static const List<String> pinNames = [
+    'عادي',     // أخضر
+    'عاجل',     // أحمر
+    'معلومة',   // أزرق
+    'مهم',      // أصفر
+  ];
+
+  static String pinName(int index) {
+    if (index < 0 || index >= pinNames.length) return pinNames[0];
+    return pinNames[index];
+  }
+
   static Color pinColorDark(int index) {
     switch (index) {
       case 0:

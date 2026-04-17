@@ -1,11 +1,13 @@
 {
-    "name": "cork_board_notes",
-    "short_name": "cork_board_notes",
+    "name": "ملاحظاتي - لوحة الفلين",
+    "short_name": "ملاحظاتي",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#C19A6B",
+    "theme_color": "#C19A6B",
+    "description": "تطبيق ملاحظات لاصقة بتصميم لوحة الفلين - نظّم أفكارك ومهامك بأسلوب ممتع",
+    "lang": "ar",
+    "dir": "rtl",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

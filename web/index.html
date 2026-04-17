@@ -1,38 +1,148 @@
 <!DOCTYPE html>
-<html>
+<html lang="ar" dir="rtl">
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="تطبيق ملاحظات لاصقة بتصميم لوحة الفلين - نظّم أفكارك ومهامك بأسلوب ممتع">
+  <meta name="theme-color" content="#C19A6B">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="cork_board_notes">
+  <meta name="apple-mobile-web-app-title" content="ملاحظاتي">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>cork_board_notes</title>
+  <title>ملاحظاتي - لوحة الفلين</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: linear-gradient(135deg, #C19A6B, #8B6F47);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      overflow: hidden;
+    }
+    /* شاشة البدء (Splash) */
+    #splash {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      transition: opacity 0.5s ease-out;
+      background: radial-gradient(ellipse at center, #C19A6B 0%, #8B6F47 100%);
+    }
+    #splash.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .sticky-note {
+      width: 140px;
+      height: 140px;
+      background: linear-gradient(135deg, #F9EE8C, #E8DA6C);
+      border-radius: 4px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #333;
+      font-size: 64px;
+      font-weight: bold;
+      transform: rotate(-4deg);
+      position: relative;
+      animation: pinNote 0.8s ease-out;
+    }
+    .pushpin {
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #ff8888, #c62828);
+      box-shadow: 1px 2px 4px rgba(0,0,0,0.35);
+      border: 1px solid rgba(0,0,0,0.15);
+    }
+    @keyframes pinNote {
+      0% { transform: rotate(-20deg) scale(0.3); opacity: 0; }
+      60% { transform: rotate(2deg) scale(1.08); opacity: 1; }
+      100% { transform: rotate(-4deg) scale(1); opacity: 1; }
+    }
+    .title-text {
+      margin-top: 28px;
+      color: #fff;
+      font-size: 26px;
+      font-weight: bold;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+      letter-spacing: 0.5px;
+    }
+    .subtitle-text {
+      margin-top: 6px;
+      color: rgba(255,255,255,0.85);
+      font-size: 14px;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    }
+    .loader-dots {
+      margin-top: 24px;
+      display: flex;
+      gap: 8px;
+    }
+    .loader-dots span {
+      width: 10px;
+      height: 10px;
+      background: rgba(255,255,255,0.85);
+      border-radius: 50%;
+      display: inline-block;
+      animation: bounce 1.2s infinite ease-in-out;
+    }
+    .loader-dots span:nth-child(1) { animation-delay: -0.32s; }
+    .loader-dots span:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.6; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+  </style>
 </head>
 <body>
+  <div id="splash">
+    <div class="sticky-note">
+      <div class="pushpin"></div>
+      📝
+    </div>
+    <div class="title-text">ملاحظاتي</div>
+    <div class="subtitle-text">لوحة الفلين - نظّم أفكارك</div>
+    <div class="loader-dots">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+
+  <script>
+    window.addEventListener('flutter-first-frame', function () {
+      const splash = document.getElementById('splash');
+      if (splash) {
+        splash.classList.add('fade-out');
+        setTimeout(() => splash.remove(), 550);
+      }
+    });
+    // احتياط: إخفاء بعد 8 ثوانٍ كحد أقصى
+    setTimeout(() => {
+      const splash = document.getElementById('splash');
+      if (splash) {
+        splash.classList.add('fade-out');
+        setTimeout(() => splash.remove(), 550);
+      }
+    }, 8000);
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

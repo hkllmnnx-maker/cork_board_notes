@@ -1017,7 +1017,7 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
   }
 
   Future<void> _pickPinColor() async {
-    const pinNames = ['أخضر', 'أحمر', 'أزرق', 'أصفر'];
+    final pinNames = AppColors.pinNames;
     final result = await showDialog<int>(
       context: context,
       builder: (_) => AlertDialog(

@@ -7,20 +7,34 @@ import '../utils/app_colors.dart';
 import '../utils/date_formatter.dart';
 import '../utils/haptics.dart';
 import '../widgets/cork_background.dart';
+import '../widgets/pushpin.dart';
 import '../widgets/sticky_note_card.dart';
 import 'note_edit_screen.dart';
 import 'search_screen.dart';
 
 /// شاشة اللوحة الرئيسية للفئة المحددة
-class BoardScreen extends StatelessWidget {
+class BoardScreen extends StatefulWidget {
   final int categoryIndex;
   const BoardScreen({super.key, required this.categoryIndex});
+
+  @override
+  State<BoardScreen> createState() => _BoardScreenState();
+}
+
+class _BoardScreenState extends State<BoardScreen> {
+  /// لون الدبوس المفعل للتصفية (null = الكل)
+  int? _filterPin;
+
+  int get categoryIndex => widget.categoryIndex;
 
   @override
   Widget build(BuildContext context) {
     return Consumer<NotesService>(
       builder: (context, service, _) {
-        final notes = service.notesByCategory(categoryIndex);
+        var notes = service.notesByCategory(categoryIndex);
+        if (_filterPin != null) {
+          notes = notes.where((n) => n.pinColor == _filterPin).toList();
+        }
         // الملاحظات المثبتة (من أي فئة) تظهر فقط في التبويب الرئيسي
         final pinnedNotes = categoryIndex == 0 ? service.pinnedNotes : <Note>[];
         return CorkBackground(
@@ -33,6 +47,10 @@ class BoardScreen extends StatelessWidget {
                     ? _buildEmptyState(context)
                     : Column(
                         children: [
+                          if (_filterPin != null) ...[
+                            _buildFilterChip(),
+                            const SizedBox(height: 8),
+                          ],
                           if (pinnedNotes.isNotEmpty) ...[
                             _buildPinnedBar(context, pinnedNotes),
                             const SizedBox(height: 8),
@@ -70,38 +88,31 @@ class BoardScreen extends StatelessWidget {
                 left: 16,
                 child: _buildStackFab(context),
               ),
-              // أزرار أسفل اليمين
+              // شريط أزرار أسفل اليمين
               Positioned(
                 bottom: 16,
                 right: 16,
                 child: Row(
                   children: [
                     _circleButton(
-                      icon: Icons.menu,
-                      onTap: () => _showQuickMenu(context),
+                      icon: Icons.search,
+                      onTap: () => _openSearch(context),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
+                    _circleButtonWithBadge(
+                      icon: Icons.filter_list,
+                      hasBadge: _filterPin != null,
+                      onTap: () => _showFilterDialog(context),
+                    ),
+                    const SizedBox(width: 6),
                     _circleButton(
                       icon: Icons.calendar_month,
                       onTap: () => _showCalendarList(context, notes),
                     ),
-                  ],
-                ),
-              ),
-              // زر البحث وزر المساعدة في الوسط
-              Positioned(
-                bottom: 16,
-                right: MediaQuery.of(context).size.width / 2 - 48,
-                child: Row(
-                  children: [
+                    const SizedBox(width: 6),
                     _circleButton(
-                      icon: Icons.search,
-                      onTap: () => _openSearch(context),
-                    ),
-                    const SizedBox(width: 8),
-                    _circleButton(
-                      icon: Icons.help_outline,
-                      onTap: () => _showHelp(context),
+                      icon: Icons.menu,
+                      onTap: () => _showQuickMenu(context),
                     ),
                   ],
                 ),
@@ -212,6 +223,115 @@ class BoardScreen extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(10),
           child: Icon(icon, size: 22, color: Colors.black87),
+        ),
+      ),
+    );
+  }
+
+  Widget _circleButtonWithBadge({
+    required IconData icon,
+    required bool hasBadge,
+    required VoidCallback onTap,
+  }) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        _circleButton(icon: icon, onTap: onTap),
+        if (hasBadge)
+          Positioned(
+            top: 2,
+            right: 2,
+            child: Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 1.2),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildFilterChip() {
+    final pinIndex = _filterPin!;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.black38),
+      ),
+      child: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Row(
+          children: [
+            const Icon(Icons.filter_list, size: 16, color: Colors.black87),
+            const SizedBox(width: 6),
+            Pushpin(colorIndex: pinIndex, size: 16),
+            const SizedBox(width: 6),
+            Text(
+              'يظهر فقط: ${AppColors.pinName(pinIndex)}',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const Spacer(),
+            InkWell(
+              onTap: () => setState(() => _filterPin = null),
+              customBorder: const CircleBorder(),
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(Icons.close, size: 16, color: Colors.black54),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showFilterDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.dialogBackground,
+        title: const Text('تصفية حسب الأولوية',
+            textDirection: TextDirection.rtl),
+        content: Directionality(
+          textDirection: TextDirection.rtl,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.all_inclusive),
+                title: const Text('عرض الكل'),
+                trailing: _filterPin == null
+                    ? const Icon(Icons.check, color: Colors.green)
+                    : null,
+                onTap: () {
+                  setState(() => _filterPin = null);
+                  Navigator.of(dialogContext).pop();
+                },
+              ),
+              const Divider(height: 1),
+              for (int i = 0; i < AppColors.pinNames.length; i++)
+                ListTile(
+                  leading: Pushpin(colorIndex: i, size: 22),
+                  title: Text(AppColors.pinName(i)),
+                  trailing: _filterPin == i
+                      ? const Icon(Icons.check, color: Colors.green)
+                      : null,
+                  onTap: () {
+                    setState(() => _filterPin = i);
+                    Navigator.of(dialogContext).pop();
+                  },
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -346,7 +466,7 @@ class BoardScreen extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => Directionality(
+      builder: (sheetContext) => Directionality(
         textDirection: TextDirection.rtl,
         child: SafeArea(
           child: Column(
@@ -356,15 +476,40 @@ class BoardScreen extends StatelessWidget {
                 leading: const Icon(Icons.add),
                 title: const Text('ملاحظة جديدة'),
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(sheetContext);
                   _openNote(context, null);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.search),
+                title: const Text('بحث في الملاحظات'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _openSearch(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.filter_list),
+                title: const Text('تصفية حسب الأولوية'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _showFilterDialog(context);
+                },
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.help_outline),
+                title: const Text('كيف أستخدم التطبيق؟'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _showHelp(context);
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.info_outline),
                 title: const Text('حول التطبيق'),
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(sheetContext);
                   _showHelp(context);
                 },
               ),
