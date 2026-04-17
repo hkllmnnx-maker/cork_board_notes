@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/notes_service.dart';
+import '../services/settings_service.dart';
 import '../utils/app_colors.dart';
 import '../widgets/cork_background.dart';
 
@@ -17,76 +18,13 @@ class SettingsScreen extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: ListView(
             children: [
-              _buildCard(
-                title: 'إحصائيات',
-                child: Consumer<NotesService>(
-                  builder: (_, service, __) {
-                    final total = service.notes.length;
-                    final home =
-                        service.notesByCategory(0).length;
-                    final work =
-                        service.notesByCategory(1).length;
-                    final family =
-                        service.notesByCategory(2).length;
-                    return Column(
-                      children: [
-                        _statRow('إجمالي الملاحظات', '$total'),
-                        _statRow('الرئيسية', '$home'),
-                        _statRow('العمل', '$work'),
-                        _statRow('العائلة', '$family'),
-                      ],
-                    );
-                  },
-                ),
-              ),
+              _buildStatsCard(),
               const SizedBox(height: 12),
-              _buildCard(
-                title: 'الإعدادات العامة',
-                child: Column(
-                  children: const [
-                    ListTile(
-                      leading: Icon(Icons.language),
-                      title: Text('اللغة'),
-                      trailing: Text('العربية'),
-                    ),
-                    Divider(height: 1),
-                    ListTile(
-                      leading: Icon(Icons.palette),
-                      title: Text('الثيم'),
-                      trailing: Text('لوحة الفلين'),
-                    ),
-                  ],
-                ),
-              ),
+              _buildAppearanceCard(),
               const SizedBox(height: 12),
-              _buildCard(
-                title: 'حول التطبيق',
-                child: Column(
-                  children: [
-                    const ListTile(
-                      leading: Icon(Icons.info),
-                      title: Text('اسم التطبيق'),
-                      trailing: Text('Cork Board Notes'),
-                    ),
-                    const Divider(height: 1),
-                    const ListTile(
-                      leading: Icon(Icons.tag),
-                      title: Text('الإصدار'),
-                      trailing: Text('1.0.0'),
-                    ),
-                    const Divider(height: 1),
-                    ListTile(
-                      leading: const Icon(Icons.delete_forever,
-                          color: Colors.red),
-                      title: const Text(
-                        'حذف جميع الملاحظات',
-                        style: TextStyle(color: Colors.red),
-                      ),
-                      onTap: () => _confirmClearAll(context),
-                    ),
-                  ],
-                ),
-              ),
+              _buildBehaviorCard(),
+              const SizedBox(height: 12),
+              _buildAboutCard(context),
             ],
           ),
         ),
@@ -94,7 +32,179 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCard({required String title, required Widget child}) {
+  Widget _buildStatsCard() {
+    return _buildCard(
+      title: 'إحصائيات',
+      icon: Icons.insights,
+      child: Consumer<NotesService>(
+        builder: (_, service, __) {
+          final total = service.notes.length;
+          final home = service.notesByCategory(0).length;
+          final work = service.notesByCategory(1).length;
+          final family = service.notesByCategory(2).length;
+          final pinned = service.pinnedNotes.length;
+          final reminders =
+              service.notes.where((n) => n.reminderDate != null).length;
+          return Column(
+            children: [
+              _statRow('إجمالي الملاحظات', '$total'),
+              _statRow('الرئيسية', '$home'),
+              _statRow('العمل', '$work'),
+              _statRow('العائلة', '$family'),
+              _statRow('المثبتة', '$pinned'),
+              _statRow('التذكيرات', '$reminders'),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildAppearanceCard() {
+    return Consumer<SettingsService>(
+      builder: (_, settings, __) {
+        return _buildCard(
+          title: 'المظهر',
+          icon: Icons.palette,
+          child: Column(
+            children: [
+              SwitchListTile(
+                secondary: const Icon(Icons.dark_mode),
+                title: const Text('الوضع الداكن'),
+                subtitle: Text(
+                  settings.isDarkMode ? 'مُفعّل' : 'مُعطّل',
+                  style: const TextStyle(fontSize: 12),
+                ),
+                value: settings.isDarkMode,
+                onChanged: (_) => settings.toggleDarkMode(),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.settings_brightness),
+                title: const Text('وضع الثيم'),
+                trailing: DropdownButton<ThemeMode>(
+                  value: settings.themeMode,
+                  underline: const SizedBox(),
+                  items: const [
+                    DropdownMenuItem(
+                      value: ThemeMode.light,
+                      child: Text('فاتح'),
+                    ),
+                    DropdownMenuItem(
+                      value: ThemeMode.dark,
+                      child: Text('داكن'),
+                    ),
+                    DropdownMenuItem(
+                      value: ThemeMode.system,
+                      child: Text('تلقائي'),
+                    ),
+                  ],
+                  onChanged: (v) {
+                    if (v != null) settings.setThemeMode(v);
+                  },
+                ),
+              ),
+              const Divider(height: 1),
+              const ListTile(
+                leading: Icon(Icons.language),
+                title: Text('اللغة'),
+                trailing: Text('العربية'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildBehaviorCard() {
+    return Consumer<SettingsService>(
+      builder: (_, settings, __) {
+        return _buildCard(
+          title: 'السلوك',
+          icon: Icons.tune,
+          child: Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.sort),
+                title: const Text('ترتيب الملاحظات'),
+                trailing: DropdownButton<NoteSortOrder>(
+                  value: settings.sortOrder,
+                  underline: const SizedBox(),
+                  items: NoteSortOrder.values
+                      .map((e) => DropdownMenuItem(
+                            value: e,
+                            child: Text(
+                              e.label,
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                          ))
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) settings.setSortOrder(v);
+                  },
+                ),
+              ),
+              const Divider(height: 1),
+              SwitchListTile(
+                secondary: const Icon(Icons.vibration),
+                title: const Text('الاهتزاز عند الحفظ/الحذف'),
+                subtitle: const Text(
+                  'تشغيل تأثير اهتزاز خفيف عند العمليات المهمة',
+                  style: TextStyle(fontSize: 12),
+                ),
+                value: settings.hapticEnabled,
+                onChanged: settings.setHapticEnabled,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAboutCard(BuildContext context) {
+    return _buildCard(
+      title: 'حول التطبيق',
+      icon: Icons.info,
+      child: Column(
+        children: [
+          const ListTile(
+            leading: Icon(Icons.sticky_note_2),
+            title: Text('اسم التطبيق'),
+            trailing: Text('ملاحظاتي'),
+          ),
+          const Divider(height: 1),
+          const ListTile(
+            leading: Icon(Icons.tag),
+            title: Text('الإصدار'),
+            trailing: Text('1.0.0'),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.help_outline),
+            title: const Text('كيف أستخدم التطبيق؟'),
+            onTap: () => _showHelp(context),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.delete_forever, color: Colors.red),
+            title: const Text(
+              'حذف جميع الملاحظات',
+              style: TextStyle(color: Colors.red),
+            ),
+            onTap: () => _confirmClearAll(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCard({
+    required String title,
+    required Widget child,
+    IconData? icon,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.noteYellow,
@@ -113,17 +223,34 @@ class SettingsScreen extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.all(12),
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
+            child: Row(
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, size: 20, color: Colors.black87),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
             ),
           ),
           const Divider(height: 1, color: Colors.black38),
-          child,
+          Theme(
+            data: ThemeData(
+              dividerColor: Colors.black26,
+              listTileTheme: const ListTileThemeData(
+                iconColor: Colors.black87,
+                textColor: Colors.black87,
+              ),
+            ),
+            child: child,
+          ),
         ],
       ),
     );
@@ -134,7 +261,10 @@ class SettingsScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: [
-          Text(label, style: const TextStyle(fontSize: 14)),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 14, color: Colors.black87),
+          ),
           const Spacer(),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -145,7 +275,10 @@ class SettingsScreen extends StatelessWidget {
             ),
             child: Text(
               value,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
           ),
         ],
@@ -157,6 +290,7 @@ class SettingsScreen extends StatelessWidget {
     final result = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
+        backgroundColor: AppColors.dialogBackground,
         title: const Text('تأكيد', textDirection: TextDirection.rtl),
         content: const Text(
           'سيتم حذف جميع الملاحظات ولا يمكن التراجع. هل أنت متأكد؟',
@@ -176,15 +310,45 @@ class SettingsScreen extends StatelessWidget {
     );
     if (result == true && context.mounted) {
       final service = context.read<NotesService>();
-      final ids = service.notes.map((e) => e.id).toList();
-      for (final id in ids) {
-        await service.deleteNote(id);
-      }
+      await service.clearAll();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('تم حذف جميع الملاحظات')),
         );
       }
     }
+  }
+
+  void _showHelp(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.dialogBackground,
+        title: const Text('كيف أستخدم التطبيق؟', textDirection: TextDirection.rtl),
+        content: const Directionality(
+          textDirection: TextDirection.rtl,
+          child: SingleChildScrollView(
+            child: Text(
+              'تطبيق ملاحظات لاصقة بتصميم لوحة الفلين.\n\n'
+              '• اضغط على كومة الملاحظات في أسفل اليسار لإنشاء ملاحظة جديدة.\n'
+              '• اضغط على ملاحظة لتعديلها.\n'
+              '• اضغط طويلًا على ملاحظة لحذفها.\n'
+              '• استخدم التبويبات العلوية للتنقل بين الفئات.\n'
+              '• اضغط على الدبوس فوق الملاحظة لتغيير لونه.\n'
+              '• زر البحث (أيقونة العدسة) للبحث في محتوى الملاحظات.\n'
+              '• زر التقويم لعرض التذكيرات القادمة.\n'
+              '• في شاشة التحرير: استخدم شريط التنسيق لتغيير الخط والألوان.',
+              style: TextStyle(height: 1.6),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('موافق'),
+          ),
+        ],
+      ),
+    );
   }
 }
