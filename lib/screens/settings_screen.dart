@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../services/notes_service.dart';
 import '../services/settings_service.dart';
 import '../utils/app_colors.dart';
@@ -23,6 +25,8 @@ class SettingsScreen extends StatelessWidget {
               _buildAppearanceCard(),
               const SizedBox(height: 12),
               _buildBehaviorCard(),
+              const SizedBox(height: 12),
+              _buildBackupCard(context),
               const SizedBox(height: 12),
               _buildAboutCard(context),
             ],
@@ -161,6 +165,246 @@ class SettingsScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  Widget _buildBackupCard(BuildContext context) {
+    return _buildCard(
+      title: 'النسخ الاحتياطي',
+      icon: Icons.backup,
+      child: Column(
+        children: [
+          ListTile(
+            leading: const Icon(Icons.ios_share, color: Colors.blue),
+            title: const Text('تصدير الملاحظات'),
+            subtitle: const Text(
+              'حفظ نسخة من جميع ملاحظاتك بصيغة JSON',
+              style: TextStyle(fontSize: 12),
+            ),
+            onTap: () => _exportNotes(context),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.file_download, color: Colors.green),
+            title: const Text('استيراد الملاحظات'),
+            subtitle: const Text(
+              'ألصق نص JSON لإضافة الملاحظات إلى التطبيق',
+              style: TextStyle(fontSize: 12),
+            ),
+            onTap: () => _importNotes(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _exportNotes(BuildContext context) async {
+    final service = context.read<NotesService>();
+    if (service.notes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('لا توجد ملاحظات للتصدير')),
+      );
+      return;
+    }
+    final jsonStr = service.exportToJson();
+    if (!context.mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.dialogBackground,
+        title: Directionality(
+          textDirection: TextDirection.rtl,
+          child: Row(
+            children: [
+              const Icon(Icons.ios_share, color: Colors.blue),
+              const SizedBox(width: 8),
+              Text('تصدير (${service.notes.length} ملاحظة)'),
+            ],
+          ),
+        ),
+        content: Directionality(
+          textDirection: TextDirection.ltr,
+          child: SizedBox(
+            width: 360,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Directionality(
+                  textDirection: TextDirection.rtl,
+                  child: Text(
+                    'يمكنك نسخ النص ومشاركته أو حفظه لاحقًا:',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 220),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: Colors.black26),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: SingleChildScrollView(
+                    child: SelectableText(
+                      jsonStr,
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton.icon(
+            icon: const Icon(Icons.copy, size: 18),
+            label: const Text('نسخ'),
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: jsonStr));
+              if (!context.mounted) return;
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('تم نسخ البيانات إلى الحافظة'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+          ),
+          TextButton.icon(
+            icon: const Icon(Icons.share, size: 18),
+            label: const Text('مشاركة'),
+            onPressed: () async {
+              Navigator.of(context).pop();
+              try {
+                await Share.share(
+                  jsonStr,
+                  subject: 'نسخة احتياطية - ملاحظاتي',
+                );
+              } catch (_) {
+                // تجاهل أخطاء المشاركة على الويب
+              }
+            },
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('إغلاق'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _importNotes(BuildContext context) async {
+    final textController = TextEditingController();
+    bool replace = false;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => StatefulBuilder(
+        builder: (_, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.dialogBackground,
+          title: const Directionality(
+            textDirection: TextDirection.rtl,
+            child: Text('استيراد ملاحظات'),
+          ),
+          content: Directionality(
+            textDirection: TextDirection.rtl,
+            child: SizedBox(
+              width: 360,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'ألصق نص JSON الذي تم تصديره سابقًا:',
+                    style: TextStyle(fontSize: 13),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 160,
+                    child: TextField(
+                      controller: textController,
+                      textDirection: TextDirection.ltr,
+                      maxLines: null,
+                      expands: true,
+                      decoration: const InputDecoration(
+                        hintText: '{"notes": [...]}',
+                        border: OutlineInputBorder(),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    title: const Text(
+                      'استبدال الملاحظات الحالية',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    subtitle: const Text(
+                      'تحذير: سيتم حذف جميع الملاحظات الموجودة أولًا',
+                      style: TextStyle(fontSize: 11, color: Colors.red),
+                    ),
+                    value: replace,
+                    onChanged: (v) => setDialogState(() => replace = v ?? false),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('إلغاء'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('استيراد',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirm != true || !context.mounted) return;
+    final text = textController.text.trim();
+    if (text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('النص فارغ')),
+      );
+      return;
+    }
+    try {
+      final service = context.read<NotesService>();
+      final count = await service.importFromJson(text, replace: replace);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('تم استيراد $count ملاحظة بنجاح'),
+          backgroundColor: Colors.green.shade700,
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('خطأ في الاستيراد: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Widget _buildAboutCard(BuildContext context) {

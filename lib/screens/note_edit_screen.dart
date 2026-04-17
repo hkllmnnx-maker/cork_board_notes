@@ -251,37 +251,46 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
         textDirection: TextDirection.rtl,
         child: Row(
           children: [
-            // زر الإطار العلوي يعرض الفئة الحالية مثل "العمل"
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [AppColors.tabWork, AppColors.noteYellowDark],
-                ),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.black54),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.25),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
+            // زر الإطار العلوي يعرض الفئة الحالية (قابل للضغط للنقل)
+            InkWell(
+              onTap: _moveToCategory,
+              borderRadius: BorderRadius.circular(24),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      _categoryColor(_note.categoryIndex),
+                      _categoryColor(_note.categoryIndex).withValues(alpha: 0.7),
+                    ],
                   ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.work, size: 16),
-                  const SizedBox(width: 6),
-                  Text(
-                    _categoryName(_note.categoryIndex),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: Colors.black54),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.25),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Icon(_categoryIcon(_note.categoryIndex), size: 16),
+                    const SizedBox(width: 6),
+                    Text(
+                      _categoryName(_note.categoryIndex),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.arrow_drop_down, size: 18),
+                  ],
+                ),
               ),
             ),
             const Spacer(),
@@ -331,6 +340,28 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
         return 'العائلة';
       default:
         return 'الرئيسية';
+    }
+  }
+
+  IconData _categoryIcon(int index) {
+    switch (index) {
+      case 1:
+        return Icons.work;
+      case 2:
+        return Icons.family_restroom;
+      default:
+        return Icons.push_pin;
+    }
+  }
+
+  Color _categoryColor(int index) {
+    switch (index) {
+      case 1:
+        return AppColors.tabWork;
+      case 2:
+        return AppColors.tabFamily;
+      default:
+        return AppColors.tabHome;
     }
   }
 
@@ -629,11 +660,72 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
                 setState(() => _showOptionsMenu = false);
                 _togglePinToHome();
               }),
+              const Divider(height: 1, color: Colors.black26),
+              _menuItem(Icons.palette, 'لون ورقة الملاحظة', () {
+                setState(() => _showOptionsMenu = false);
+                _pickNoteColor();
+              }),
+              const Divider(height: 1, color: Colors.black26),
+              _menuItem(Icons.push_pin, 'لون الدبوس', () {
+                setState(() => _showOptionsMenu = false);
+                _pickPinColor();
+              }),
+              const Divider(height: 1, color: Colors.black26),
+              _menuItem(Icons.folder_open, 'نقل إلى فئة أخرى', () {
+                setState(() => _showOptionsMenu = false);
+                _moveToCategory();
+              }),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _moveToCategory() async {
+    final result = await showDialog<int>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.dialogBackground,
+        title: const Text(
+          'نقل الملاحظة إلى فئة',
+          textDirection: TextDirection.rtl,
+        ),
+        content: Directionality(
+          textDirection: TextDirection.rtl,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final item in const [
+                [0, 'الرئيسية', Icons.push_pin],
+                [1, 'العمل', Icons.work],
+                [2, 'العائلة', Icons.family_restroom],
+              ])
+                ListTile(
+                  leading: Icon(item[2] as IconData),
+                  title: Text(item[1] as String),
+                  trailing: _note.categoryIndex == item[0]
+                      ? const Icon(Icons.check, color: Colors.green)
+                      : null,
+                  onTap: () => Navigator.of(context).pop(item[0] as int),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (result != null && result != _note.categoryIndex) {
+      setState(() {
+        _note = _note.copyWith(categoryIndex: result);
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('تم النقل إلى ${_categoryName(result)}'),
+          duration: const Duration(seconds: 1),
+        ),
+      );
+    }
   }
 
   Widget _menuItem(IconData icon, String label, VoidCallback onTap) {

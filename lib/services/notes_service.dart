@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -213,5 +214,57 @@ class NotesService extends ChangeNotifier {
     await _box.clear();
     _notes.clear();
     notifyListeners();
+  }
+
+  /// تصدير جميع الملاحظات بصيغة JSON
+  String exportToJson() {
+    final data = {
+      'version': 1,
+      'app': 'cork_board_notes',
+      'exportedAt': DateTime.now().toIso8601String(),
+      'notes': _notes.map((n) => n.toMap()).toList(),
+    };
+    return const JsonEncoder.withIndent('  ').convert(data);
+  }
+
+  /// استيراد ملاحظات من JSON (يضيف إلى الموجود)
+  /// الإرجاع: عدد الملاحظات المُستوردة
+  Future<int> importFromJson(String jsonStr, {bool replace = false}) async {
+    try {
+      final decoded = json.decode(jsonStr);
+      if (decoded is! Map) {
+        throw const FormatException('تنسيق ملف غير صالح');
+      }
+      final notesList = decoded['notes'];
+      if (notesList is! List) {
+        throw const FormatException('لا توجد ملاحظات داخل الملف');
+      }
+
+      if (replace) {
+        await clearAll();
+      }
+
+      int imported = 0;
+      for (final item in notesList) {
+        if (item is! Map) continue;
+        try {
+          final note = Note.fromMap(item);
+          // إذا كان id موجودًا مسبقًا (حالة replace=false)، نُصدر id جديد
+          if (_notes.any((n) => n.id == note.id)) {
+            final newNote = note.copyWith(id: _uuid.v4());
+            await addNote(newNote);
+          } else {
+            await addNote(note);
+          }
+          imported++;
+        } catch (e) {
+          if (kDebugMode) debugPrint('skip invalid note: $e');
+        }
+      }
+      return imported;
+    } catch (e) {
+      if (kDebugMode) debugPrint('Import error: $e');
+      rethrow;
+    }
   }
 }
