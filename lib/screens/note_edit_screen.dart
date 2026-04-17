@@ -6,6 +6,7 @@ import '../services/notes_service.dart';
 import '../utils/app_colors.dart';
 import '../utils/date_formatter.dart';
 import '../widgets/cork_background.dart';
+import '../widgets/pushpin.dart';
 import 'calendar_picker_dialog.dart';
 
 /// شاشة إنشاء/تعديل ملاحظة
@@ -251,23 +252,26 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
 
   Widget _buildNoteArea() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.noteYellow, AppColors.noteYellowDark],
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.4),
-              blurRadius: 8,
-              offset: const Offset(2, 4),
+      padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [AppColors.noteYellow, AppColors.noteYellowDark],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  blurRadius: 8,
+                  offset: const Offset(2, 4),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Column(
+            child: Column(
           children: [
             // شريط أدوات داخل الملاحظة
             Padding(
@@ -343,6 +347,23 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
             ),
           ],
         ),
+          ),
+          // دبوس التثبيت فوق الملاحظة - قابل للنقر لتغيير اللون
+          Positioned(
+            top: -14,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: GestureDetector(
+                onTap: _pickPinColor,
+                child: Tooltip(
+                  message: 'اضغط لتغيير لون الدبوس',
+                  child: Pushpin(colorIndex: _note.pinColor, size: 34),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -674,28 +695,67 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
   }
 
   Future<void> _pickPinColor() async {
+    const pinNames = ['أخضر', 'أحمر', 'أزرق', 'أصفر'];
     final result = await showDialog<int>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('اختر لون الدبوس', textDirection: TextDirection.rtl),
-        content: Wrap(
-          spacing: 12,
-          children: [
-            for (int i = 0; i < 4; i++)
-              GestureDetector(
-                onTap: () => Navigator.of(context).pop(i),
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: AppColors.pinColor(i),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.black45, width: 1.5),
-                  ),
-                ),
-              ),
-          ],
+        backgroundColor: AppColors.dialogBackground,
+        title: const Text(
+          'اختر لون الدبوس',
+          textDirection: TextDirection.rtl,
+          textAlign: TextAlign.center,
         ),
+        content: Directionality(
+          textDirection: TextDirection.rtl,
+          child: SizedBox(
+            width: 260,
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 14,
+              runSpacing: 14,
+              children: [
+                for (int i = 0; i < 4; i++)
+                  InkWell(
+                    onTap: () => Navigator.of(context).pop(i),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: 96,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: _note.pinColor == i
+                              ? AppColors.pinColor(i)
+                              : Colors.black26,
+                          width: _note.pinColor == i ? 2.5 : 1,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Pushpin(colorIndex: i, size: 32),
+                          const SizedBox(height: 6),
+                          Text(
+                            pinNames[i],
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('إلغاء'),
+          ),
+        ],
       ),
     );
     if (result != null) {
