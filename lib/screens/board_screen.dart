@@ -416,8 +416,10 @@ class BoardScreen extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         subtitle: Text(
-                          '${DateFormatter.arabicDate(n.reminderDate!)} • ${DateFormatter.reminderLabel(n.reminderDate!)}',
+                          '${DateFormatter.arabicDate(n.reminderDate!)} • ${DateFormatter.time12(n.reminderDate!)}\n${DateFormatter.reminderLabel(n.reminderDate!)}',
+                          style: const TextStyle(fontSize: 12),
                         ),
+                        isThreeLine: true,
                       ),
                     );
                   }),

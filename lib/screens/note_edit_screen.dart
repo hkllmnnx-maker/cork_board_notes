@@ -139,7 +139,7 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'تم تعيين تذكير ليوم ${DateFormatter.arabicDate(result)} (${DateFormatter.reminderLabel(result)})',
+            'تم تعيين تذكير ليوم ${DateFormatter.arabicDate(result)} الساعة ${DateFormatter.time12(result)}',
           ),
           duration: const Duration(seconds: 2),
         ),
@@ -382,6 +382,59 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
                 ),
               ),
             ),
+            // شارة التذكير إن وُجد
+            if (_note.reminderDate != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange.shade400),
+                  ),
+                  child: Directionality(
+                    textDirection: TextDirection.rtl,
+                    child: Row(
+                      children: [
+                        Icon(Icons.alarm,
+                            size: 16, color: Colors.orange.shade800),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'تذكير: ${DateFormatter.reminderFull(_note.reminderDate!)}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.orange.shade900,
+                            ),
+                          ),
+                        ),
+                        InkWell(
+                          onTap: () {
+                            setState(() {
+                              _note = _note.copyWith(clearReminder: true);
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('تم حذف التذكير'),
+                                duration: Duration(seconds: 1),
+                              ),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Padding(
+                            padding: const EdgeInsets.all(4),
+                            child: Icon(Icons.close,
+                                size: 16, color: Colors.orange.shade800),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             // محرر النص
             Expanded(
               child: Padding(

@@ -13,6 +13,7 @@ class ArabicCalendarDialog extends StatefulWidget {
 class _ArabicCalendarDialogState extends State<ArabicCalendarDialog> {
   late DateTime _displayedMonth;
   late DateTime _selectedDate;
+  late TimeOfDay _selectedTime;
 
   static const List<String> _arabicMonths = [
     'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
@@ -27,8 +28,41 @@ class _ArabicCalendarDialogState extends State<ArabicCalendarDialog> {
   @override
   void initState() {
     super.initState();
-    _selectedDate = widget.initialDate ?? DateTime.now();
+    final initial = widget.initialDate ?? DateTime.now().add(const Duration(hours: 1));
+    _selectedDate = initial;
     _displayedMonth = DateTime(_selectedDate.year, _selectedDate.month);
+    _selectedTime = TimeOfDay(hour: initial.hour, minute: initial.minute);
+  }
+
+  DateTime get _combinedDateTime {
+    return DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      _selectedTime.hour,
+      _selectedTime.minute,
+    );
+  }
+
+  Future<void> _pickTime() async {
+    final result = await showTimePicker(
+      context: context,
+      initialTime: _selectedTime,
+      builder: (context, child) {
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: MediaQuery(
+            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+            child: child ?? const SizedBox(),
+          ),
+        );
+      },
+    );
+    if (result != null) {
+      setState(() {
+        _selectedTime = result;
+      });
+    }
   }
 
   void _prevMonth() {
@@ -74,6 +108,8 @@ class _ArabicCalendarDialogState extends State<ArabicCalendarDialog> {
               _buildCalendarGrid(),
               const SizedBox(height: 8),
               _buildSelectedDateLabel(),
+              const SizedBox(height: 8),
+              _buildTimePickerButton(),
               const SizedBox(height: 12),
               _buildActionButtons(),
             ],
@@ -237,6 +273,51 @@ class _ArabicCalendarDialogState extends State<ArabicCalendarDialog> {
     );
   }
 
+  Widget _buildTimePickerButton() {
+    final hh = _selectedTime.hour.toString().padLeft(2, '0');
+    final mm = _selectedTime.minute.toString().padLeft(2, '0');
+    final period = _selectedTime.period == DayPeriod.am ? 'صباحًا' : 'مساءً';
+    final displayHour = _selectedTime.hourOfPeriod == 0
+        ? 12
+        : _selectedTime.hourOfPeriod;
+    final displayHourStr = displayHour.toString().padLeft(2, '0');
+    return InkWell(
+      onTap: _pickTime,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.orange.shade600, width: 1.2),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.access_time, size: 18, color: Colors.orange.shade700),
+            const SizedBox(width: 6),
+            Text(
+              '$displayHourStr:$mm $period',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.orange.shade800,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '($hh:$mm)',
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildActionButtons() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -245,16 +326,18 @@ class _ArabicCalendarDialogState extends State<ArabicCalendarDialog> {
         _actionButton(
           icon: Icons.check,
           color: AppColors.actionGreen,
-          onTap: () => Navigator.of(context).pop(_selectedDate),
+          onTap: () => Navigator.of(context).pop(_combinedDateTime),
         ),
         // اليوم (إعادة ضبط)
         _actionButton(
           icon: Icons.calendar_today,
           color: Colors.black87,
           onTap: () {
+            final now = DateTime.now();
             setState(() {
-              _selectedDate = DateTime.now();
-              _displayedMonth = DateTime(_selectedDate.year, _selectedDate.month);
+              _selectedDate = now;
+              _displayedMonth = DateTime(now.year, now.month);
+              _selectedTime = TimeOfDay(hour: now.hour, minute: now.minute);
             });
           },
         ),

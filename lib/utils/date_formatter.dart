@@ -69,6 +69,21 @@ class DateFormatter {
     return arabicDate(d);
   }
 
+  /// تنسيق الوقت 12 ساعة بالعربية: "10:30 صباحًا"
+  static String time12(DateTime d) {
+    final period = d.hour < 12 ? 'صباحًا' : 'مساءً';
+    int hour = d.hour % 12;
+    if (hour == 0) hour = 12;
+    final hh = hour.toString().padLeft(2, '0');
+    final mm = d.minute.toString().padLeft(2, '0');
+    return '$hh:$mm $period';
+  }
+
+  /// وسم التذكير الكامل: "غدًا - 10:30 صباحًا"
+  static String reminderFull(DateTime d) {
+    return '${reminderLabel(d)} - ${time12(d)}';
+  }
+
   /// استخدام intl لضمان الأرقام العربية عند الحاجة
   static String intlShort(DateTime d) {
     return DateFormat('yyyy/MM/dd', 'ar').format(d);
