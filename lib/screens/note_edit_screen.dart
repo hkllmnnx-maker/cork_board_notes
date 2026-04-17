@@ -4,6 +4,7 @@ import 'package:share_plus/share_plus.dart';
 import '../models/note.dart';
 import '../services/notes_service.dart';
 import '../utils/app_colors.dart';
+import '../utils/date_formatter.dart';
 import '../widgets/cork_background.dart';
 import 'calendar_picker_dialog.dart';
 
@@ -64,7 +65,9 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('تم تعيين تذكير ليوم ${result.day}/${result.month}/${result.year}'),
+          content: Text(
+            'تم تعيين تذكير ليوم ${DateFormatter.arabicDate(result)} (${DateFormatter.reminderLabel(result)})',
+          ),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -404,7 +407,7 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
     );
   }
 
-  String _fmt(DateTime d) => '${d.year}/${d.month}/${d.day}';
+  String _fmt(DateTime d) => DateFormatter.dateTime(d);
 
   void _showAttachmentNotice() {
     ScaffoldMessenger.of(context).showSnackBar(

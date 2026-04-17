@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/note.dart';
 import '../services/notes_service.dart';
 import '../utils/app_colors.dart';
+import '../utils/date_formatter.dart';
 import '../widgets/cork_background.dart';
 import '../widgets/sticky_note_card.dart';
 import 'note_edit_screen.dart';
@@ -305,15 +306,23 @@ class BoardScreen extends StatelessWidget {
                     child: Text('لا توجد تذكيرات'),
                   )
                 else
-                  ...reminders.map((n) => Card(
-                        child: ListTile(
-                          leading: const Icon(Icons.event),
-                          title: Text(n.content.split('\n').first),
-                          subtitle: Text(
-                            '${n.reminderDate!.year}/${n.reminderDate!.month}/${n.reminderDate!.day}',
-                          ),
+                  ...reminders.map((n) {
+                    final firstLine = n.content.split('\n').first.trim();
+                    final title = firstLine.isEmpty ? 'ملاحظة بدون عنوان' : firstLine;
+                    return Card(
+                      child: ListTile(
+                        leading: const Icon(Icons.event, color: Colors.orange),
+                        title: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      )),
+                        subtitle: Text(
+                          '${DateFormatter.arabicDate(n.reminderDate!)} • ${DateFormatter.reminderLabel(n.reminderDate!)}',
+                        ),
+                      ),
+                    );
+                  }),
               ],
             ),
           ),
