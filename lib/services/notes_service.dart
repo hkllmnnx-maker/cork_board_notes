@@ -18,6 +18,44 @@ class NotesService extends ChangeNotifier {
       ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
   }
 
+  /// البحث في الملاحظات (بنص معيّن، مع إمكانية التقييد بفئة)
+  List<Note> searchNotes(String query, {int? categoryIndex}) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) {
+      return categoryIndex != null
+          ? notesByCategory(categoryIndex)
+          : List<Note>.from(_notes)
+        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    }
+    Iterable<Note> source = _notes;
+    if (categoryIndex != null) {
+      source = source.where((n) => n.categoryIndex == categoryIndex);
+    }
+    final results = source
+        .where((n) =>
+            n.content.toLowerCase().contains(q) ||
+            n.title.toLowerCase().contains(q))
+        .toList()
+      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    return results;
+  }
+
+  /// الملاحظات المثبتة على الشاشة الرئيسية
+  List<Note> get pinnedNotes {
+    return _notes.where((n) => n.isPinnedToHome).toList()
+      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+  }
+
+  /// الملاحظات ذات التذكيرات القادمة
+  List<Note> get upcomingReminders {
+    final now = DateTime.now();
+    return _notes
+        .where((n) =>
+            n.reminderDate != null && !n.reminderDate!.isBefore(now))
+        .toList()
+      ..sort((a, b) => a.reminderDate!.compareTo(b.reminderDate!));
+  }
+
   /// تهيئة Hive وتحميل الملاحظات
   Future<void> init() async {
     await Hive.initFlutter();
@@ -135,5 +173,12 @@ class NotesService extends ChangeNotifier {
     );
     await addNote(copy);
     return copy;
+  }
+
+  /// حذف كل الملاحظات دفعة واحدة (أسرع من الحذف فرديًا)
+  Future<void> clearAll() async {
+    await _box.clear();
+    _notes.clear();
+    notifyListeners();
   }
 }

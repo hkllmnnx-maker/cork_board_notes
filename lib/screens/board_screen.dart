@@ -7,6 +7,7 @@ import '../utils/date_formatter.dart';
 import '../widgets/cork_background.dart';
 import '../widgets/sticky_note_card.dart';
 import 'note_edit_screen.dart';
+import 'search_screen.dart';
 
 /// شاشة اللوحة الرئيسية للفئة المحددة
 class BoardScreen extends StatelessWidget {
@@ -70,13 +71,22 @@ class BoardScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              // زر المساعدة
+              // زر البحث وزر المساعدة في الوسط
               Positioned(
                 bottom: 16,
-                right: MediaQuery.of(context).size.width / 2 - 24,
-                child: _circleButton(
-                  icon: Icons.help_outline,
-                  onTap: () => _showHelp(context),
+                right: MediaQuery.of(context).size.width / 2 - 48,
+                child: Row(
+                  children: [
+                    _circleButton(
+                      icon: Icons.search,
+                      onTap: () => _openSearch(context),
+                    ),
+                    const SizedBox(width: 8),
+                    _circleButton(
+                      icon: Icons.help_outline,
+                      onTap: () => _showHelp(context),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -192,6 +202,14 @@ class BoardScreen extends StatelessWidget {
             offset: const Offset(1, 1),
           ),
         ],
+      ),
+    );
+  }
+
+  void _openSearch(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SearchScreen(categoryIndex: categoryIndex),
       ),
     );
   }
