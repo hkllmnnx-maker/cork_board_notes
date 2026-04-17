@@ -36,12 +36,12 @@ class StickyNoteCard extends StatelessWidget {
             // جسم الملاحظة
             Container(
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
+                gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    AppColors.noteYellow,
-                    AppColors.noteYellowDark,
+                    AppColors.noteColorPrimary(note.noteColor),
+                    AppColors.noteColorSecondary(note.noteColor),
                   ],
                 ),
                 boxShadow: [
@@ -93,6 +93,56 @@ class StickyNoteCard extends StatelessWidget {
                 child: Pushpin(colorIndex: note.pinColor, size: 20),
               ),
             ),
+            // مؤشر التذكير (إن وُجد)
+            if (note.reminderDate != null)
+              Positioned(
+                top: 4,
+                right: 4,
+                child: Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade600,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        blurRadius: 2,
+                        offset: const Offset(1, 1),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.alarm,
+                    size: 12,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            // مؤشر التثبيت في الرئيسية
+            if (note.isPinnedToHome)
+              Positioned(
+                top: 4,
+                left: 4,
+                child: Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade700,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        blurRadius: 2,
+                        offset: const Offset(1, 1),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.home,
+                    size: 12,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
           ],
         ),
       ),

@@ -24,6 +24,8 @@ class NoteEditScreen extends StatefulWidget {
 class _NoteEditScreenState extends State<NoteEditScreen> {
   late TextEditingController _controller;
   late Note _note;
+  late Note _originalNote;
+  late String _originalContent;
   bool _showFormatBar = false;
   bool _showOptionsMenu = false;
 
@@ -31,13 +33,69 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
   void initState() {
     super.initState();
     _note = widget.note;
+    _originalNote = widget.note;
+    _originalContent = _note.content;
     _controller = TextEditingController(text: _note.content);
+    _controller.addListener(() {
+      // إعادة بناء لتحديث حالة زر الحفظ أو مؤشر التغييرات
+      if (mounted) setState(() {});
+    });
   }
 
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  /// هل هناك تعديلات غير محفوظة؟
+  bool get _hasUnsavedChanges {
+    if (_controller.text != _originalContent) return true;
+    if (_note.pinColor != _originalNote.pinColor) return true;
+    if (_note.fontSize != _originalNote.fontSize) return true;
+    if (_note.isBold != _originalNote.isBold) return true;
+    if (_note.isItalic != _originalNote.isItalic) return true;
+    if (_note.isUnderline != _originalNote.isUnderline) return true;
+    if (_note.isStrikethrough != _originalNote.isStrikethrough) return true;
+    if (_note.isHighlighted != _originalNote.isHighlighted) return true;
+    if (_note.isReadOnly != _originalNote.isReadOnly) return true;
+    if (_note.isPinnedToHome != _originalNote.isPinnedToHome) return true;
+    if (_note.reminderDate != _originalNote.reminderDate) return true;
+    if (_note.noteColor != _originalNote.noteColor) return true;
+    return false;
+  }
+
+  /// عرض حوار تأكيد الخروج بدون حفظ
+  Future<bool> _confirmDiscardChanges() async {
+    if (!_hasUnsavedChanges) return true;
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.dialogBackground,
+        title: const Text(
+          'تعديلات غير محفوظة',
+          textDirection: TextDirection.rtl,
+        ),
+        content: const Text(
+          'لديك تعديلات لم يتم حفظها. هل تريد تجاهلها والخروج؟',
+          textDirection: TextDirection.rtl,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('رجوع'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(
+              'تجاهل وخروج',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
   }
 
   Future<void> _save() async {
@@ -60,8 +118,12 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
     Navigator.of(context).pop(true);
   }
 
-  void _cancel() {
-    Navigator.of(context).pop(false);
+  Future<void> _cancel() async {
+    final ok = await _confirmDiscardChanges();
+    if (!mounted) return;
+    if (ok) {
+      Navigator.of(context).pop(false);
+    }
   }
 
   Future<void> _pickReminderDate() async {
@@ -147,23 +209,35 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: CorkBackground(
-        child: SafeArea(
-          child: Column(
-            children: [
-              _buildTopBar(),
-              Expanded(
-                child: Stack(
-                  children: [
-                    _buildNoteArea(),
-                    if (_showOptionsMenu) _buildOptionsMenu(),
-                  ],
+    return PopScope(
+      canPop: !_hasUnsavedChanges,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final navigator = Navigator.of(context);
+        final ok = await _confirmDiscardChanges();
+        if (!mounted) return;
+        if (ok) {
+          navigator.pop(false);
+        }
+      },
+      child: Scaffold(
+        body: CorkBackground(
+          child: SafeArea(
+            child: Column(
+              children: [
+                _buildTopBar(),
+                Expanded(
+                  child: Stack(
+                    children: [
+                      _buildNoteArea(),
+                      if (_showOptionsMenu) _buildOptionsMenu(),
+                    ],
+                  ),
                 ),
-              ),
-              if (_showFormatBar) _buildFormatBar(),
-              _buildBottomActions(),
-            ],
+                if (_showFormatBar) _buildFormatBar(),
+                _buildBottomActions(),
+              ],
+            ),
           ),
         ),
       ),
@@ -211,10 +285,10 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
               ),
             ),
             const Spacer(),
-            // زر القائمة (menu)
+            // زر الرجوع
             _smallRoundButton(
               icon: Icons.list,
-              onTap: () => Navigator.of(context).pop(false),
+              onTap: _cancel,
             ),
             const SizedBox(width: 6),
             // زر الملاحظة (يشبه شكل الملاحظة الصفراء)
@@ -268,10 +342,13 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
         children: [
           Container(
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
+              gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [AppColors.noteYellow, AppColors.noteYellowDark],
+                colors: [
+                  AppColors.noteColorPrimary(_note.noteColor),
+                  AppColors.noteColorSecondary(_note.noteColor),
+                ],
               ),
               boxShadow: [
                 BoxShadow(
@@ -548,9 +625,9 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
         child: Row(
           children: [
             _formatButton(
-              label: 'Aa',
+              icon: Icons.palette,
               active: false,
-              onTap: () {},
+              onTap: _pickNoteColor,
             ),
             const SizedBox(width: 4),
             _fontSizeButton(),
@@ -702,6 +779,96 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _pickNoteColor() async {
+    final result = await showDialog<int>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.dialogBackground,
+        title: const Text(
+          'اختر لون الملاحظة',
+          textDirection: TextDirection.rtl,
+          textAlign: TextAlign.center,
+        ),
+        content: Directionality(
+          textDirection: TextDirection.rtl,
+          child: SizedBox(
+            width: 300,
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 14,
+              runSpacing: 14,
+              children: [
+                for (int i = 0; i < AppColors.noteColors.length; i++)
+                  InkWell(
+                    onTap: () => Navigator.of(context).pop(i),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            AppColors.noteColorPrimary(i),
+                            AppColors.noteColorSecondary(i),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: _note.noteColor == i
+                              ? Colors.blue.shade700
+                              : Colors.black26,
+                          width: _note.noteColor == i ? 3 : 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.25),
+                            blurRadius: 4,
+                            offset: const Offset(1, 2),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (_note.noteColor == i)
+                              const Icon(Icons.check_circle,
+                                  color: Colors.black87, size: 20),
+                            const SizedBox(height: 4),
+                            Text(
+                              AppColors.noteColorNames[i],
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('إلغاء'),
+          ),
+        ],
+      ),
+    );
+    if (result != null) {
+      setState(() {
+        _note = _note.copyWith(noteColor: result);
+      });
+    }
   }
 
   Future<void> _pickPinColor() async {

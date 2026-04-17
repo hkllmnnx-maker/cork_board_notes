@@ -32,6 +32,43 @@ class AppColors {
   static const Color actionRed = Color(0xFFE53935);
   static const Color dialogBackground = Color(0xFFFFF8E1);
 
+  // ألوان الملاحظات (6 ألوان) - فاتح ومظلم لكل منها لتدرج لوني
+  static const List<List<Color>> noteColors = [
+    // 0: أصفر (افتراضي)
+    [Color(0xFFF9EE8C), Color(0xFFE8DA6C)],
+    // 1: وردي
+    [Color(0xFFFFB6C1), Color(0xFFF48FA8)],
+    // 2: أخضر
+    [Color(0xFFC5E1A5), Color(0xFFAED581)],
+    // 3: أزرق
+    [Color(0xFFB3E5FC), Color(0xFF81D4FA)],
+    // 4: برتقالي
+    [Color(0xFFFFCC80), Color(0xFFFFB74D)],
+    // 5: بنفسجي
+    [Color(0xFFE1BEE7), Color(0xFFCE93D8)],
+  ];
+
+  static const List<String> noteColorNames = [
+    'أصفر',
+    'وردي',
+    'أخضر',
+    'أزرق',
+    'برتقالي',
+    'بنفسجي',
+  ];
+
+  /// الحصول على اللون الأساسي لورقة الملاحظة
+  static Color noteColorPrimary(int index) {
+    if (index < 0 || index >= noteColors.length) return noteYellow;
+    return noteColors[index][0];
+  }
+
+  /// الحصول على اللون الداكن لورقة الملاحظة (للتدرج)
+  static Color noteColorSecondary(int index) {
+    if (index < 0 || index >= noteColors.length) return noteYellowDark;
+    return noteColors[index][1];
+  }
+
   static Color pinColor(int index) {
     switch (index) {
       case 0:

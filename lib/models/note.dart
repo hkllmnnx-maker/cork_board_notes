@@ -5,6 +5,7 @@ class Note {
   String content;
   int categoryIndex; // 0: الرئيسية, 1: العمل, 2: العائلة
   int pinColor; // 0: أخضر, 1: أحمر, 2: أزرق, 3: أصفر
+  int noteColor; // 0: أصفر, 1: وردي, 2: أخضر, 3: أزرق, 4: برتقالي, 5: أبيض
   double fontSize;
   bool isBold;
   bool isItalic;
@@ -25,6 +26,7 @@ class Note {
     this.content = '',
     this.categoryIndex = 0,
     this.pinColor = 0,
+    this.noteColor = 0,
     this.fontSize = 14.0,
     this.isBold = false,
     this.isItalic = false,
@@ -47,6 +49,7 @@ class Note {
       'content': content,
       'categoryIndex': categoryIndex,
       'pinColor': pinColor,
+      'noteColor': noteColor,
       'fontSize': fontSize,
       'isBold': isBold,
       'isItalic': isItalic,
@@ -70,6 +73,7 @@ class Note {
       content: (map['content'] ?? '') as String,
       categoryIndex: (map['categoryIndex'] ?? 0) as int,
       pinColor: (map['pinColor'] ?? 0) as int,
+      noteColor: (map['noteColor'] ?? 0) as int,
       fontSize: (map['fontSize'] ?? 14.0).toDouble(),
       isBold: (map['isBold'] ?? false) as bool,
       isItalic: (map['isItalic'] ?? false) as bool,
@@ -96,6 +100,7 @@ class Note {
     String? content,
     int? categoryIndex,
     int? pinColor,
+    int? noteColor,
     double? fontSize,
     bool? isBold,
     bool? isItalic,
@@ -117,6 +122,7 @@ class Note {
       content: content ?? this.content,
       categoryIndex: categoryIndex ?? this.categoryIndex,
       pinColor: pinColor ?? this.pinColor,
+      noteColor: noteColor ?? this.noteColor,
       fontSize: fontSize ?? this.fontSize,
       isBold: isBold ?? this.isBold,
       isItalic: isItalic ?? this.isItalic,
