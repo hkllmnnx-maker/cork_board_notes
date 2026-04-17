@@ -19,32 +19,47 @@ class BoardScreen extends StatelessWidget {
     return Consumer<NotesService>(
       builder: (context, service, _) {
         final notes = service.notesByCategory(categoryIndex);
+        // الملاحظات المثبتة (من أي فئة) تظهر فقط في التبويب الرئيسي
+        final pinnedNotes = categoryIndex == 0 ? service.pinnedNotes : <Note>[];
         return CorkBackground(
           child: Stack(
             children: [
-              // شبكة الملاحظات
+              // شبكة الملاحظات + شريط المثبتة (إن وُجدت)
               Padding(
                 padding: const EdgeInsets.fromLTRB(10, 12, 10, 80),
-                child: notes.isEmpty
+                child: notes.isEmpty && pinnedNotes.isEmpty
                     ? _buildEmptyState(context)
-                    : GridView.builder(
-                        padding: const EdgeInsets.all(4),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          crossAxisSpacing: 10,
-                          mainAxisSpacing: 14,
-                          childAspectRatio: 0.95,
-                        ),
-                        itemCount: notes.length,
-                        itemBuilder: (_, i) {
-                          final n = notes[i];
-                          return StickyNoteCard(
-                            note: n,
-                            onTap: () => _openNote(context, n),
-                            onLongPress: () => _confirmDelete(context, n),
-                          );
-                        },
+                    : Column(
+                        children: [
+                          if (pinnedNotes.isNotEmpty) ...[
+                            _buildPinnedBar(context, pinnedNotes),
+                            const SizedBox(height: 8),
+                          ],
+                          Expanded(
+                            child: notes.isEmpty
+                                ? _buildEmptyState(context)
+                                : GridView.builder(
+                                    padding: const EdgeInsets.all(4),
+                                    gridDelegate:
+                                        const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 3,
+                                      crossAxisSpacing: 10,
+                                      mainAxisSpacing: 14,
+                                      childAspectRatio: 0.95,
+                                    ),
+                                    itemCount: notes.length,
+                                    itemBuilder: (_, i) {
+                                      final n = notes[i];
+                                      return StickyNoteCard(
+                                        note: n,
+                                        onTap: () => _openNote(context, n),
+                                        onLongPress: () =>
+                                            _confirmDelete(context, n),
+                                      );
+                                    },
+                                  ),
+                          ),
+                        ],
                       ),
               ),
               // زر إضافة ملاحظة (FAB) - أسفل اليسار (كومة الملاحظات)
@@ -93,6 +108,59 @@ class BoardScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildPinnedBar(BuildContext context, List<Note> pinnedNotes) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.black26),
+      ),
+      child: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.push_pin, size: 16, color: Colors.white),
+                const SizedBox(width: 6),
+                Text(
+                  'المثبتة (${pinnedNotes.length})',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            SizedBox(
+              height: 110,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: pinnedNotes.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (_, i) {
+                  final n = pinnedNotes[i];
+                  return SizedBox(
+                    width: 95,
+                    child: StickyNoteCard(
+                      note: n,
+                      onTap: () => _openNote(context, n),
+                      onLongPress: () => _confirmDelete(context, n),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
